@@ -1,0 +1,97 @@
+from flask import Flask, render_template_string, request, redirect, jsonify
+import json
+import os
+
+app = Flask(__name__)
+FILE = "map_data.json"
+
+# Load or create map data
+def load_map():
+    if os.path.exists(FILE):
+        with open(FILE, "r") as f:
+            try:
+                return json.load(f)
+            except:
+                return []
+    return []
+
+def save_map(data):
+    with open(FILE, "w") as f:
+        json.dump(data, f)
+
+map_data = load_map()
+
+# HTML template with Leaflet
+TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+    <title>Map Creator</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Map Creator</h1>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        var markers = [];
+
+        function addMarker(lat, lng, title, desc) {
+            var marker = L.marker([lat, lng]).addTo(map)
+                .bindPopup("<b>" + title + "</b><br>" + desc);
+            markers.push(marker);
+        }
+
+        // Load existing markers from backend
+        var existing = {{ map_data|tojson }};
+        for (var i=0; i<existing.length; i++){
+            addMarker(existing[i].lat, existing[i].lng, existing[i].title, existing[i].desc);
+        }
+
+        map.on('click', function(e){
+            var title = prompt("Marker Title:");
+            if (!title) return;
+            var desc = prompt("Marker Description:");
+            if (!desc) desc = "";
+            addMarker(e.latlng.lat, e.latlng.lng, title, desc);
+
+            // Send to backend
+            fetch("/add_marker", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lat: e.latlng.lat,
+                    lng: e.latlng.lng,
+                    title: title,
+                    desc: desc
+                })
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route("/")
+def index():
+    return render_template_string(TEMPLATE, map_data=map_data)
+
+@app.route("/add_marker", methods=["POST"])
+def add_marker():
+    data = request.get_json()
+    map_data.append(data)
+    save_map(map_data)
+    return jsonify({"status": "success"})
+
+if __name__ == "__main__":
+    app.run(debug=True)
