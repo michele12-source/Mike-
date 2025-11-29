@@ -1,0 +1,99 @@
+import json
+import os
+
+FILE = "archivio.json"
+
+# ---------------------------
+# CARICA E SALVA
+# ---------------------------
+def carica_archivio():
+    if os.path.exists(FILE):
+        with open(FILE, "r") as f:
+            try:
+                return json.load(f)
+            except:
+                return []
+    return []
+
+def salva_archivio():
+    with open(FILE, "w") as f:
+        json.dump(archivio, f)
+
+# ---------------------------
+# FUNZIONI
+# ---------------------------
+def aggiungi():
+    print("\n=== Aggiungi Dato ===")
+    titolo = input("Titolo: ")
+    contenuto = input("Contenuto: ")
+    archivio.append({"titolo": titolo, "contenuto": contenuto})
+    salva_archivio()
+    print("✔ Dato aggiunto!\n")
+
+def cerca():
+    print("\n=== Cerca Dato ===")
+    parola = input("Parola chiave: ")
+    risultati = [d for d in archivio if parola.lower() in d["titolo"].lower() or parola.lower() in d["contenuto"].lower()]
+    if risultati:
+        print("\n🔍 Risultati trovati:")
+        for i, r in enumerate(risultati, start=1):
+            print(f"{i}) {r['titolo']} | {r['contenuto']}")
+    else:
+        print("❌ Nessun risultato trovato.")
+    print()
+
+def mostra_tutto():
+    print("\n=== Archivio Completo ===")
+    if not archivio:
+        print("📭 Archivio vuoto.\n")
+        return
+    for i, d in enumerate(archivio, start=1):
+        print(f"{i}) {d['titolo']} | {d['contenuto']}")
+    print()
+
+def elimina():
+    mostra_tutto()
+    if archivio:
+        try:
+            numero = int(input("Numero del dato da eliminare: "))
+            archivio.pop(numero - 1)
+            salva_archivio()
+            print("🗑 Dato eliminato!\n")
+        except:
+            print("❌ Numero non valido.\n")
+
+# ---------------------------
+# MENU
+# ---------------------------
+def menu():
+    while True:
+        print("""
+==============================
+   APP ARCHIVIAZIONE DATI
+==============================
+1) Aggiungi dato
+2) Cerca dato
+3) Mostra tutto
+4) Elimina dato
+5) Esci
+""")
+        scelta = input("Scegli un'opzione: ")
+        if scelta == "1":
+            aggiungi()
+        elif scelta == "2":
+            cerca()
+        elif scelta == "3":
+            mostra_tutto()
+        elif scelta == "4":
+            elimina()
+        elif scelta == "5":
+            print("👋 Uscita.")
+            break
+        else:
+            print("❌ Opzione non valida.\n")
+
+# ---------------------------
+# AVVIO APP
+# ---------------------------
+archivio = carica_archivio()
+menu()
